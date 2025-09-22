@@ -6,29 +6,6 @@ Fishing Frenzy is a Minecraft plugin for Paper 1.21.8 that adds a timed fishing 
 - Server: Paper 1.21.8 (compatible with modern 1.21.x)
 - Java: 21 (LTS)
 
-## Build (Windows)
-Use the included Gradle wrapper to build a shaded JAR that already contains Kyori Adventure and MiniMessage:
-
-```
-cmd
-./gradlew.bat clean build
-```
-
-Output:
-- `build\libs\FishingFrenzy-1.0.0.jar` (shaded, deploy this)
-
-Optional: run a local test server that auto-loads your plugin
-```
-cmd
-./gradlew.bat runServer
-```
-
-## Install/Upgrade
-1. Stop your server.
-2. Remove any Adventure libraries you previously put into `plugins` (e.g. `adventure-api-*.jar`, `adventure-platform-bukkit-*.jar`, `adventure-text-minimessage-*.jar`) and any related files under `plugins\.paper-remapped\`.
-3. Copy `build\libs\FishingFrenzy-1.0.0.jar` into your server's `plugins` folder.
-4. If upgrading from an older config, delete `plugins/FishingFrenzy/config.yml` once to regenerate the corrected default file, then customize it again.
-5. Start the server.
 
 ## Commands & Permissions
 - `/frenzy reload` — Reloads the plugin configuration
