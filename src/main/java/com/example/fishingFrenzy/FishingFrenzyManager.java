@@ -79,6 +79,15 @@ public class FishingFrenzyManager {
         this.globalCooldownEnd = 0;
     }
 
+    private void removeGlobalBossBar() {
+        if (globalBossBar != null) {
+            for (Player p : Bukkit.getOnlinePlayers()) {
+                adventure.player(p).hideBossBar(globalBossBar);
+            }
+            globalBossBar = null;
+        }
+    }
+
     public boolean isFrenzyActive() {
         return frenzyActive;
     }
@@ -246,5 +255,18 @@ public class FishingFrenzyManager {
 
     public void resetPity(Player player) {
         playerPityCounters.put(player.getUniqueId(), 0);
+    }
+
+    // Public wrappers to control frenzy from commands
+    public boolean tryStartFrenzy() {
+        if (frenzyActive) return false;
+        startFrenzy();
+        return true;
+    }
+
+    public boolean tryEndFrenzy() {
+        if (!frenzyActive) return false;
+        endFrenzy();
+        return true;
     }
 }

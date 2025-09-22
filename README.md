@@ -33,6 +33,8 @@ cmd
 ## Commands & Permissions
 - `/frenzy reload` — Reloads the plugin configuration
 - `/frenzy status` — Shows current state (active, time left / time until next)
+- `/frenzy start` — Starts a frenzy immediately (bypasses meter), and resets the global cooldown
+- `/frenzy end` — Ends the current frenzy early, if one is active
 - Permission: `fishingfrenzy.command` (default: op)
 
 Commands are declared in `plugin.yml` (Bukkit-style). This plugin does not use `paper-plugin.yml` for commands.
@@ -49,7 +51,7 @@ Commands are declared in `plugin.yml` (Bukkit-style). This plugin does not use `
 Default config is written to `plugins/FishingFrenzy/config.yml` on first run. Key options:
 
 - `frenzy.duration` (int, seconds) — Default 90
-- `frenzy.cooldown` (int, seconds) — Default 3600 (1 hour)
+- `frenzy.cooldown` (int, seconds) — Default 3600 (1 hour). For 30 minutes, set to `1800`.
 - `frenzy.per-player-cooldown` (int, seconds) — Default 600
 - `frenzy.loot-multiplier` (double) — Global multiplier applied to chances
 - `frenzy.mode` (string) — `global` (current)
@@ -77,6 +79,8 @@ Notes:
 ## Troubleshooting
 - YAML parse error on startup
   - Typically caused by malformed quotes or unbalanced MiniMessage tags in `config.yml`. Delete the server's `plugins/FishingFrenzy/config.yml` to regenerate the default, then reapply your changes carefully.
+- Duplicate boss bars after reload
+  - Fixed in code: reloading now hides and replaces the boss bar. If you still see two, update the plugin JAR to this build and try `/frenzy reload` again.
 - "Does not contain plugin.yml/paper-plugin.yml"
   - Remove any non-plugin library JARs from `plugins` (Adventure jars). Only keep `FishingFrenzy-1.0.0.jar`.
 - Command not found

@@ -5,10 +5,9 @@ api-version: '1.21'
 commands:
   frenzy:
     description: Manage Fishing Frenzy
-    usage: /frenzy <reload|status>
+    usage: /frenzy <reload|status|start|end>
     permission: fishingfrenzy.command
 permissions:
   fishingfrenzy.command:
     description: Allows using /frenzy
     default: op
-
