@@ -19,28 +19,41 @@ public final class FishingFrenzy extends JavaPlugin {
         frenzyManager = new FishingFrenzyManager(this, config);
         getServer().getPluginManager().registerEvents(new FishingFrenzyListener(frenzyManager), this);
         frenzyManager.startScheduler();
-        getCommand("frenzy").setExecutor(this);
-    }
 
-    @Override
-    public void onDisable() {
-        // Plugin shutdown logic
+        // Use Bukkit command declared in plugin.yml
+        if (getCommand("frenzy") != null) {
+            getCommand("frenzy").setExecutor(this);
+        }
     }
 
     @Override
     public boolean onCommand(@NotNull CommandSender sender, @NotNull Command command, @NotNull String label, @NotNull String[] args) {
+        if (!command.getName().equalsIgnoreCase("frenzy")) return false;
+        return handleFrenzyCommand(sender, args);
+    }
+
+    private boolean handleFrenzyCommand(@NotNull CommandSender sender, @NotNull String[] args) {
+        if (!sender.isOp() && !sender.hasPermission("fishingfrenzy.command")) {
+            sender.sendMessage("§cYou don't have permission to use this command.");
+            return true;
+        }
         if (args.length == 1 && args[0].equalsIgnoreCase("reload")) {
             reloadConfig();
             config = getConfig();
             frenzyManager.reloadConfig(config);
-            sender.sendMessage("<green>Fishing Frenzy config reloaded!".replace('<', '§'));
+            sender.sendMessage("§aFishing Frenzy config reloaded!");
             return true;
         } else if (args.length == 1 && args[0].equalsIgnoreCase("status")) {
             frenzyManager.sendStatus(sender);
             return true;
         }
-        sender.sendMessage("<yellow>Usage: /frenzy <reload|status>".replace('<', '§'));
+        sender.sendMessage("§eUsage: /frenzy <reload|status>");
         return true;
+    }
+
+    @Override
+    public void onDisable() {
+        // Plugin shutdown logic
     }
 
     public FileConfiguration getPluginConfig() {

@@ -1,0 +1,10 @@
+plugins {
+    id 'com.github.johnrengelman.shadow' version '8.1.7'
+}
+
+task hello {
+    doLast {
+        println 'Hello, Shadow!'
+    }
+}
+

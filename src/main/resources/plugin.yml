@@ -1,0 +1,14 @@
+name: FishingFrenzy
+version: ${version}
+main: com.example.fishingFrenzy.FishingFrenzy
+api-version: '1.21'
+commands:
+  frenzy:
+    description: Manage Fishing Frenzy
+    usage: /frenzy <reload|status>
+    permission: fishingfrenzy.command
+permissions:
+  fishingfrenzy.command:
+    description: Allows using /frenzy
+    default: op
+

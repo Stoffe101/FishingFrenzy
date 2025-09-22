@@ -1,64 +1,91 @@
 # Fishing Frenzy
 
-**Fishing Frenzy** is a Minecraft Paper plugin for 1.21.8 that introduces an exciting, server-wide fishing event. Every hour, players have a chance to participate in a limited-time event where fishing yields rare and powerful loot!
-
-## Features
-
-- **Hourly Fishing Frenzy Event:**  
-  Every hour, a Fishing Frenzy event starts automatically and lasts for 10 minutes.
-- **Event Announcements:**  
-  - 5-minute warning before the event starts (title popup).
-  - Countdown action bar notifications as the event approaches.
-  - Title and action bar notifications when the event starts and ends.
-  - Action bar displays time remaining during the event.
-- **Enhanced Fishing Loot:**  
-  During the event, fishing has a 20% chance to yield special loot, including:
-  - Enchanted books (with rare and useful enchantments)
-  - Enchanted fishing rods and tridents
-  - Rare potions (Water Breathing, Night Vision, Slow Falling)
-  - Netherite scrap, diamonds, emeralds, golden apples (including enchanted)
-  - Nautilus shells, Heart of the Sea, prismarine items
-  - Totem of Undying, enchanted diamond helmet, enchanted elytra
-  - Steve's Lucky Head (custom player head)
-  - Bundles (if available in your version)
-  - Cooked cod (as a fallback)
-
-## How It Works
-
-1. **Event Timing:**
-   - The event is scheduled every hour (configurable in code).
-   - A 5-minute warning is broadcast to all players.
-   - The event lasts for 10 minutes.
-
-2. **Player Notifications:**
-   - **5 minutes before:** Title popup: "Fishing Frenzy soon! Starts in 5 minutes!"
-   - **1 minute before:** Action bar countdown every 10 seconds.
-   - **Event start:** Title: "Fishing Frenzy! Catch rare loot for 10 minutes!"
-   - **During event:** Action bar: "Fishing Frenzy! Time left: [mm:ss]"
-   - **Event end:** Title: "Fishing Frenzy Ended. Back to normal fishing."
-
-3. **Fishing During the Event:**
-   - When a player catches a fish, there is a 20% chance to receive a special loot drop in addition to the normal catch.
-   - Players are notified with a message when they receive special loot.
-
-## Installation
-
-1. Place the plugin JAR in your server's `plugins` folder.
-2. Start or reload your Paper server (version 1.21.8).
-3. The event will run automatically; no configuration is required.
-
-## Customization
-
-- **Event Timing and Loot:**  
-  To change event frequency, duration, or loot, edit the relevant values in the source code (`FishingFrenzyManager.java` and `FishingFrenzyListener.java`).
+Fishing Frenzy is a Minecraft plugin for Paper 1.21.8 that adds a timed fishing event with special loot, streak/luck mechanics, and a global meter. It ships as a single shaded JAR (no extra libraries needed).
 
 ## Requirements
+- Server: Paper 1.21.8 (compatible with modern 1.21.x)
+- Java: 21 (LTS)
 
-- PaperMC 1.21.8 or compatible.
-- Java 21 or newer.
+## Build (Windows)
+Use the included Gradle wrapper to build a shaded JAR that already contains Kyori Adventure and MiniMessage:
+
+```
+cmd
+./gradlew.bat clean build
+```
+
+Output:
+- `build\libs\FishingFrenzy-1.0.0.jar` (shaded, deploy this)
+
+Optional: run a local test server that auto-loads your plugin
+```
+cmd
+./gradlew.bat runServer
+```
+
+## Install/Upgrade
+1. Stop your server.
+2. Remove any Adventure libraries you previously put into `plugins` (e.g. `adventure-api-*.jar`, `adventure-platform-bukkit-*.jar`, `adventure-text-minimessage-*.jar`) and any related files under `plugins\.paper-remapped\`.
+3. Copy `build\libs\FishingFrenzy-1.0.0.jar` into your server's `plugins` folder.
+4. If upgrading from an older config, delete `plugins/FishingFrenzy/config.yml` once to regenerate the corrected default file, then customize it again.
+5. Start the server.
+
+## Commands & Permissions
+- `/frenzy reload` — Reloads the plugin configuration
+- `/frenzy status` — Shows current state (active, time left / time until next)
+- Permission: `fishingfrenzy.command` (default: op)
+
+Commands are declared in `plugin.yml` (Bukkit-style). This plugin does not use `paper-plugin.yml` for commands.
+
+## Features
+- Timed “Frenzy” event with countdowns and boss bar
+- Global meter (optional) requiring a number of catches to trigger Frenzy
+- Streaks increase luck per catch up to a configurable cap
+- Pity system guarantees a spicy drop after N misses during Frenzy
+- Weighted loot table with custom names, lore, and enchantments
+- Optional "Lucky Rod" that doubles spicy chance during Frenzy
+
+## Configuration
+Default config is written to `plugins/FishingFrenzy/config.yml` on first run. Key options:
+
+- `frenzy.duration` (int, seconds) — Default 90
+- `frenzy.cooldown` (int, seconds) — Default 3600 (1 hour)
+- `frenzy.per-player-cooldown` (int, seconds) — Default 600
+- `frenzy.loot-multiplier` (double) — Global multiplier applied to chances
+- `frenzy.mode` (string) — `global` (current)
+- `frenzy.allowed-worlds` (string list) — Allowed world names; empty = all
+- `frenzy.allowed-biomes` (string list) — Allowed biome names; empty = all
+- `frenzy.allowed-times` (string list) — `DAY` and/or `NIGHT`; empty = both
+- `frenzy.meter.enabled` (bool) — Enable global meter
+- `frenzy.meter.required-fish` (int) — Catches required to trigger Frenzy
+- `frenzy.streaks.luck-per-streak` (double) — Luck increase per streak
+- `frenzy.streaks.max-streak` (int) — Streak cap
+- `frenzy.pity-threshold` (int) — Guarantee spicy after N misses
+- `frenzy.loot-table` (list of items) — Weighted entries with fields:
+  - `type` — Bukkit material name (e.g., `DIAMOND`, `FISHING_ROD`)
+  - `weight` — Relative weight (int)
+  - `amount` — Either a number (e.g., `1`) or range string `min-max` (e.g., `2-4`)
+  - `spicy` — true/false to mark spicy drops
+  - `enchants` — List of enchantment names (applies to enchanted book or gear)
+  - `name` — MiniMessage string for display name
+  - `lore` — List of MiniMessage strings for lore
+
+Notes:
+- MiniMessage strings must be valid YAML scalars. Quote strings that contain `:` or special characters, and ensure tags are balanced (e.g., `"<gradient:gold:yellow>Lucky Rod</gradient>"`).
+- The plugin reads `allowed-biomes` even if it’s not present; keeping it in the config improves clarity.
+
+## Troubleshooting
+- YAML parse error on startup
+  - Typically caused by malformed quotes or unbalanced MiniMessage tags in `config.yml`. Delete the server's `plugins/FishingFrenzy/config.yml` to regenerate the default, then reapply your changes carefully.
+- "Does not contain plugin.yml/paper-plugin.yml"
+  - Remove any non-plugin library JARs from `plugins` (Adventure jars). Only keep `FishingFrenzy-1.0.0.jar`.
+- Command not found
+  - Ensure you’re using this shaded build and that `plugin.yml` is packaged (it is by default). Check console for enable errors.
+
+## Development Notes
+- Build: shaded via `com.gradleup.shadow` (relocates Kyori to `com.example.fishingFrenzy.shaded.*`).
+- Commands: declared in `src/main/resources/plugin.yml` and wired via `JavaPlugin#getCommand` in `FishingFrenzy`.
+- Local test server: `./gradlew.bat runServer` (defaults to 1.21; adjust as needed).
 
 ## License
-
-This plugin is provided as-is. You may modify and redistribute it as you wish.
-
-
+Provided as-is. You may modify and redistribute as you wish.

@@ -8,6 +8,7 @@ frenzy:
   loot-multiplier: 1.0 # multiplier for loot drop chances
   allowed-worlds:
     - world
+  allowed-biomes: [] # empty = allow all, or e.g. ["PLAINS", "RIVER", "OCEAN"]
   allowed-times:
     - DAY
     - NIGHT
@@ -117,10 +118,10 @@ frenzy:
       weight: 1
       spicy: true
       amount: 1
-      name: '<gradient:gold:yellow>Lucky Rod'</gradient>
+      name: "<gradient:gold:yellow>Lucky Rod</gradient>"
       lore:
-        - '<gray>A legendary rod said to bring fortune.'
-        - '<yellow>Boosts your chance for spicy loot!'
+        - "<gray>A legendary rod said to bring fortune."
+        - "<yellow>Boosts your chance for spicy loot!"
       enchants:
         - LUCK_OF_THE_SEA
         - LURE

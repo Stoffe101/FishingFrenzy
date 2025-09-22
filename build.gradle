@@ -1,6 +1,7 @@
 plugins {
     id 'java'
     id("xyz.jpenilla.run-paper") version "2.3.1"
+    id 'com.gradleup.shadow' version '8.3.5'
 }
 
 group = 'com.example'
@@ -20,6 +21,33 @@ dependencies {
     implementation("net.kyori:adventure-platform-bukkit:4.3.2")
     implementation("net.kyori:adventure-text-minimessage:4.14.0")
 }
+
+shadowJar {
+    archiveClassifier.set("") // Make shadowJar the default output
+    from(sourceSets.main.output)
+    from("$buildDir/classes/java/main")
+    from("$buildDir/resources/main")
+    relocate 'net.kyori.adventure', 'com.example.fishingFrenzy.shaded.adventure'
+    relocate 'net.kyori.adventure.platform', 'com.example.fishingFrenzy.shaded.adventure.platform'
+    relocate 'net.kyori.adventure.text.minimessage', 'com.example.fishingFrenzy.shaded.adventure.text.minimessage'
+    doFirst {
+        println "[shadowJar] Including class files:"
+        fileTree("$buildDir/classes/java/main").matching { include '**/*.class' }.files.each { println it }
+        println "[shadowJar] Including resources:"
+        fileTree("$buildDir/resources/main").files.each { println it }
+    }
+}
+
+jar {
+    enabled = false
+    manifest {
+        attributes(
+            'Main-Class': 'com.example.fishingFrenzy.FishingFrenzy'
+        )
+    }
+}
+
+tasks.build.dependsOn shadowJar
 
 tasks {
     runServer {
@@ -52,7 +80,9 @@ processResources {
     def props = [version: version]
     inputs.properties props
     filteringCharset 'UTF-8'
-    filesMatching('paper-plugin.yml') {
+    // Exclude Paper plugin descriptor so we act as a Bukkit plugin (YAML commands allowed)
+    exclude 'paper-plugin.yml'
+    filesMatching('plugin.yml') {
         expand props
     }
 }
