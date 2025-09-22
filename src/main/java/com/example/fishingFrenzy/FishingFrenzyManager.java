@@ -55,6 +55,7 @@ public class FishingFrenzyManager {
     public void reloadConfig(FileConfiguration config) {
         this.config = config;
         loadConfig();
+        removeGlobalBossBar();
         createGlobalBossBar();
     }
 
