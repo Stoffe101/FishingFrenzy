@@ -1,13 +1,16 @@
 # Fishing Frenzy Plugin Configuration
 # All values can be hot-reloaded with /frenzy reload
 
+# Enable verbose logging for troubleshooting
+debug: false
+
 frenzy:
   duration: 90 # seconds (default for shared meter)
   cooldown: 3600 # seconds (global cooldown)
   per-player-cooldown: 600 # seconds (per-player cooldown)
   loot-multiplier: 1.0 # multiplier for loot drop chances
-  allowed-worlds:
-    - world
+  # Empty list allows all worlds (recommended default). Add names to restrict.
+  allowed-worlds: []
   allowed-biomes: [] # empty = allow all, or e.g. ["PLAINS", "RIVER", "OCEAN"]
   allowed-times:
     - DAY
@@ -39,9 +42,9 @@ frenzy:
       spicy: true
       amount: 1
       enchants:
-        - LOYALTY
-        - IMPALING
-        - UNBREAKING
+        - LOYALTY:3
+        - IMPALING:5
+        - UNBREAKING:3
     - type: ENCHANTED_GOLDEN_APPLE
       weight: 1
       spicy: true
@@ -59,61 +62,61 @@ frenzy:
       spicy: true
       amount: 1
       enchants:
-        - PROTECTION
-        - UNBREAKING
-        - RESPIRATION
+        - PROTECTION:4
+        - UNBREAKING:3
+        - RESPIRATION:3
     - type: DIAMOND_CHESTPLATE
       weight: 1
       spicy: true
       amount: 1
       enchants:
-        - PROTECTION
-        - UNBREAKING
+        - PROTECTION:4
+        - UNBREAKING:3
     - type: DIAMOND_LEGGINGS
       weight: 1
       spicy: true
       amount: 1
       enchants:
-        - PROTECTION
-        - UNBREAKING
+        - PROTECTION:4
+        - UNBREAKING:3
     - type: DIAMOND_BOOTS
       weight: 1
       spicy: true
       amount: 1
       enchants:
-        - PROTECTION
-        - UNBREAKING
-        - DEPTH_STRIDER
+        - PROTECTION:4
+        - UNBREAKING:3
+        - DEPTH_STRIDER:3
     - type: NETHERITE_HELMET
       weight: 1
       spicy: true
       amount: 1
       enchants:
-        - PROTECTION
-        - UNBREAKING
-        - RESPIRATION
+        - PROTECTION:4
+        - UNBREAKING:3
+        - RESPIRATION:3
     - type: NETHERITE_CHESTPLATE
       weight: 1
       spicy: true
       amount: 1
       enchants:
-        - PROTECTION
-        - UNBREAKING
+        - PROTECTION:4
+        - UNBREAKING:3
     - type: NETHERITE_LEGGINGS
       weight: 1
       spicy: true
       amount: 1
       enchants:
-        - PROTECTION
-        - UNBREAKING
+        - PROTECTION:4
+        - UNBREAKING:3
     - type: NETHERITE_BOOTS
       weight: 1
       spicy: true
       amount: 1
       enchants:
-        - PROTECTION
-        - UNBREAKING
-        - DEPTH_STRIDER
+        - PROTECTION:4
+        - UNBREAKING:3
+        - DEPTH_STRIDER:3
     - type: FISHING_ROD
       weight: 1
       spicy: true
@@ -123,26 +126,26 @@ frenzy:
         - "<gray>A legendary rod said to bring fortune."
         - "<yellow>Boosts your chance for spicy loot!"
       enchants:
-        - LUCK_OF_THE_SEA
-        - LURE
-        - UNBREAKING
-        - MENDING
+        - LUCK_OF_THE_SEA:3
+        - LURE:3
+        - UNBREAKING:3
+        - MENDING:1
       lucky-rod: true
     # Uncommon loot
     - type: ENCHANTED_BOOK
       weight: 10
       enchants:
-        - LURE
-        - LUCK_OF_THE_SEA
-        - MENDING
-        - UNBREAKING
-        - PROTECTION
-        - DEPTH_STRIDER
-        - FROST_WALKER
-        - RESPIRATION
-        - SILK_TOUCH
-        - EFFICIENCY
-        - SHARPNESS
+        - LURE:3
+        - LUCK_OF_THE_SEA:3
+        - MENDING:1
+        - UNBREAKING:3
+        - PROTECTION:4
+        - DEPTH_STRIDER:3
+        - FROST_WALKER:2
+        - RESPIRATION:3
+        - SILK_TOUCH:1
+        - EFFICIENCY:5
+        - SHARPNESS:5
     - type: DIAMOND
       weight: 8
       amount: 2-4

@@ -44,6 +44,7 @@ public class FishingFrenzyManager {
     private int maxStreak;
     private Map<UUID, Integer> playerPityCounters = new HashMap<>();
     private int pityThreshold;
+    private boolean debug;
 
     public FishingFrenzyManager(Plugin plugin, FileConfiguration config) {
         this.plugin = plugin;
@@ -60,6 +61,7 @@ public class FishingFrenzyManager {
     }
 
     private void loadConfig() {
+        this.debug = config.getBoolean("debug", false);
         this.frenzyDuration = config.getInt("frenzy.duration", 90);
         this.globalCooldown = config.getInt("frenzy.cooldown", 3600);
         this.perPlayerCooldown = config.getInt("frenzy.per-player-cooldown", 600);
@@ -77,6 +79,10 @@ public class FishingFrenzyManager {
         this.playerCooldowns.clear();
         this.playerPityCounters.clear();
         this.globalCooldownEnd = 0;
+    }
+
+    public boolean isDebug() {
+        return debug;
     }
 
     private void removeGlobalBossBar() {
@@ -172,6 +178,11 @@ public class FishingFrenzyManager {
     private void sendActionBarToAll(String msg) {
         Component c = miniMessage.deserialize(msg);
         Bukkit.getOnlinePlayers().forEach(p -> adventure.player(p).sendActionBar(c));
+    }
+
+    // New: send action bar to a single player
+    public void sendActionBar(Player player, String msg) {
+        adventure.player(player).sendActionBar(miniMessage.deserialize(msg));
     }
 
     public Plugin getPlugin() {
