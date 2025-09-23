@@ -136,10 +136,10 @@ public class FishingFrenzyListener implements Listener {
                     PersistentDataContainer pdc = meta.getPersistentDataContainer();
                     hasLuckyRod = pdc.has(luckyRodKey, PersistentDataType.BYTE);
                     if (!hasLuckyRod) {
-                        Component dn = meta.displayName();
-                        if (dn != null) {
-                            String legacy = LegacyComponentSerializer.legacySection().serialize(dn);
-                            hasLuckyRod = legacy != null && legacy.contains("Lucky Rod");
+                        // Use legacy String display name for maximum compatibility
+                        if (meta.hasDisplayName()) {
+                            String dn = meta.getDisplayName();
+                            hasLuckyRod = dn != null && dn.contains("Lucky Rod");
                         }
                     }
                 }
@@ -349,23 +349,30 @@ public class FishingFrenzyListener implements Listener {
                 }
             }
         }
-        // Handle custom name via Adventure API
+        // Handle custom name via legacy string (avoid Adventure ItemMeta API to prevent shading mismatch)
         if (map.containsKey("name")) {
             ItemMeta meta = item.getItemMeta();
-            Component nameComp = miniMessage.deserialize(map.get("name").toString());
-            meta.displayName(nameComp);
+            String legacy = LegacyComponentSerializer.legacySection()
+                    .serialize(miniMessage.deserialize(map.get("name").toString()))
+                    .replace("§r", "");
+            meta.setDisplayName(legacy);
             item.setItemMeta(meta);
         }
-        // Handle custom lore via Adventure API
+        // Handle custom lore via legacy string list
         if (map.containsKey("lore")) {
             Object loreObj = map.get("lore");
             if (loreObj instanceof List) {
                 ItemMeta meta = item.getItemMeta();
-                List<Component> lore = new ArrayList<>();
+                java.util.List<String> lore = new java.util.ArrayList<>();
                 for (Object lineObj : (List<?>) loreObj) {
-                    if (lineObj != null) lore.add(miniMessage.deserialize(lineObj.toString()));
+                    if (lineObj != null) {
+                        String legacy = LegacyComponentSerializer.legacySection()
+                                .serialize(miniMessage.deserialize(lineObj.toString()))
+                                .replace("§r", "");
+                        lore.add(legacy);
+                    }
                 }
-                meta.lore(lore);
+                meta.setLore(lore);
                 item.setItemMeta(meta);
             }
         }
