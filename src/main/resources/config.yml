@@ -155,6 +155,40 @@ frenzy:
     - type: NAME_TAG
       weight: 5
       amount: 1
+    # Example of a multi-effect potion (you can duplicate and tweak)
+    - type: POTION
+      weight: 6
+      amount: 1-2
+      name: "<aqua>Oceanic Draught"
+      potion:
+        # Optional base potion data (type + extended/upgraded like vanilla)
+        base:
+          type: WATER_BREATHING
+          extended: true
+          upgraded: false
+        # Optional custom color (supports "#RRGGBB", "R,G,B", [R,G,B], or named like RED)
+        color: "#00AEEF"
+        # Custom effects stack on top of base; duration is in seconds unless 'ticks: true'
+        effects:
+          - type: DOLPHINS_GRACE
+            duration: 45
+            level: 1
+            ambient: false
+            particles: true
+            icon: true
+          - type: NIGHT_VISION
+            duration: 120
+            level: 1
+    # You can also do splash/lingering or tipped arrows with potion data, e.g.:
+    # - type: SPLASH_POTION
+    #   weight: 3
+    #   potion:
+    #     base: { type: HEALING, upgraded: true }
+    # - type: TIPPED_ARROW
+    #   weight: 2
+    #   potion:
+    #     effects:
+    #       - { type: POISON, duration: 5, level: 2 }
     # Common loot
     - type: COOKED_COD
       weight: 20

@@ -1,7 +1,9 @@
 package com.example.fishingFrenzy;
 
+import net.kyori.adventure.key.Key;
 import net.kyori.adventure.text.minimessage.MiniMessage;
 import net.kyori.adventure.text.serializer.legacy.LegacyComponentSerializer;
+import net.kyori.adventure.text.Component;
 import org.bukkit.Material;
 import org.bukkit.NamespacedKey;
 import org.bukkit.Particle;
@@ -16,6 +18,11 @@ import org.bukkit.event.player.PlayerFishEvent.State;
 import org.bukkit.inventory.ItemStack;
 import org.bukkit.inventory.meta.EnchantmentStorageMeta;
 import org.bukkit.inventory.meta.ItemMeta;
+import org.bukkit.inventory.meta.PotionMeta;
+import org.bukkit.potion.PotionEffect;
+import org.bukkit.potion.PotionEffectType;
+import org.bukkit.potion.PotionType;
+import org.bukkit.Color;
 import org.bukkit.persistence.PersistentDataContainer;
 import org.bukkit.persistence.PersistentDataType;
 import org.bukkit.plugin.Plugin;
@@ -23,9 +30,11 @@ import org.bukkit.configuration.file.FileConfiguration;
 
 import java.util.HashSet;
 import java.util.List;
+import java.util.Locale;
 import java.util.Map;
 import java.util.Random;
 import java.util.Set;
+import java.util.ArrayList;
 
 public class FishingFrenzyListener implements Listener {
     private final FishingFrenzyManager manager;
@@ -35,7 +44,7 @@ public class FishingFrenzyListener implements Listener {
     private final NamespacedKey luckyRodKey;
     private FileConfiguration config;
     private Set<String> allowedWorlds;
-    private Set<String> allowedBiomes;
+    private Set<String> allowedBiomes; // stored as lowercase tokens from config
     private Set<String> allowedTimes;
 
     public FishingFrenzyListener(FishingFrenzyManager manager) {
@@ -44,15 +53,23 @@ public class FishingFrenzyListener implements Listener {
         this.config = plugin.getConfig();
         this.luckyRodKey = new NamespacedKey(plugin, "lucky_rod");
         allowedWorlds = new HashSet<>(config.getStringList("frenzy.allowed-worlds"));
-        allowedBiomes = new HashSet<>(config.getStringList("frenzy.allowed-biomes"));
+        allowedBiomes = normalizeToLower(config.getStringList("frenzy.allowed-biomes"));
         allowedTimes = new HashSet<>(config.getStringList("frenzy.allowed-times"));
     }
 
     public void reloadConfig(FileConfiguration config) {
         this.config = config;
         allowedWorlds = new HashSet<>(config.getStringList("frenzy.allowed-worlds"));
-        allowedBiomes = new HashSet<>(config.getStringList("frenzy.allowed-biomes"));
+        allowedBiomes = normalizeToLower(config.getStringList("frenzy.allowed-biomes"));
         allowedTimes = new HashSet<>(config.getStringList("frenzy.allowed-times"));
+    }
+
+    private Set<String> normalizeToLower(List<String> input) {
+        Set<String> out = new HashSet<>();
+        if (input != null) {
+            for (String s : input) if (s != null) out.add(s.trim().toLowerCase(Locale.ROOT));
+        }
+        return out;
     }
 
     @EventHandler
@@ -67,10 +84,11 @@ public class FishingFrenzyListener implements Listener {
             if (manager.isDebug()) plugin.getLogger().fine("Skip: world not allowed");
             return;
         }
-        // Check allowed biome
+        // Check allowed biome (supports "PLAINS", "minecraft:plains", or just "plains" in config)
         Biome biome = player.getLocation().getBlock().getBiome();
-        if (!allowedBiomes.isEmpty() && !allowedBiomes.contains(biome.name())) {
-            if (manager.isDebug()) plugin.getLogger().fine("Skip: biome not allowed: " + biome.name());
+        if (!allowedBiomes.isEmpty() && !isBiomeAllowed(biome)) {
+            Key k = biome.key();
+            if (manager.isDebug()) plugin.getLogger().fine("Skip: biome not allowed: " + k.namespace() + ":" + k.value());
             return;
         }
         // Check allowed time
@@ -110,15 +128,19 @@ public class FishingFrenzyListener implements Listener {
                 if (manager.isDebug()) plugin.getLogger().info("Pity triggered: giving spicy loot");
             } else {
                 double baseChance = 0.20 * manager.getLootMultiplier() * luckMultiplier;
-                // Detect Lucky Rod (by PDC or name fallback)
+                // Detect Lucky Rod (by PDC or display name fallback)
                 boolean hasLuckyRod = false;
                 ItemStack hand = player.getInventory().getItemInMainHand();
-                if (hand != null && hand.getType() == Material.FISHING_ROD && hand.hasItemMeta()) {
+                if (hand.getType() == Material.FISHING_ROD && hand.hasItemMeta()) {
                     ItemMeta meta = hand.getItemMeta();
                     PersistentDataContainer pdc = meta.getPersistentDataContainer();
                     hasLuckyRod = pdc.has(luckyRodKey, PersistentDataType.BYTE);
-                    if (!hasLuckyRod && meta.hasDisplayName()) {
-                        hasLuckyRod = meta.getDisplayName().contains("Lucky Rod");
+                    if (!hasLuckyRod) {
+                        Component dn = meta.displayName();
+                        if (dn != null) {
+                            String legacy = LegacyComponentSerializer.legacySection().serialize(dn);
+                            hasLuckyRod = legacy != null && legacy.contains("Lucky Rod");
+                        }
                     }
                 }
                 if (hasLuckyRod) baseChance *= 2.0; // Double spicy chance with Lucky Rod
@@ -144,6 +166,14 @@ public class FishingFrenzyListener implements Listener {
         if (!manager.isFrenzyActive()) {
             manager.setPlayerCooldown(player);
         }
+    }
+
+    private boolean isBiomeAllowed(Biome biome) {
+        if (allowedBiomes.isEmpty()) return true;
+        Key k = biome.key();
+        String namespaced = (k.namespace() + ":" + k.value()).toLowerCase(Locale.ROOT);
+        String keyOnly = k.value().toLowerCase(Locale.ROOT);
+        return allowedBiomes.contains(namespaced) || allowedBiomes.contains(keyOnly);
     }
 
     private boolean isAllowedTime(long worldTime) {
@@ -229,11 +259,17 @@ public class FishingFrenzyListener implements Listener {
             String amtStr = map.get("amount").toString();
             if (amtStr.contains("-")) {
                 String[] parts = amtStr.split("-");
-                int min = Integer.parseInt(parts[0]);
-                int max = Integer.parseInt(parts[1]);
-                amount = min + random.nextInt(max - min + 1);
+                try {
+                    int min = Integer.parseInt(parts[0].trim());
+                    int max = Integer.parseInt(parts[1].trim());
+                    if (max < min) { int tmp = min; min = max; max = tmp; }
+                    amount = min + random.nextInt(max - min + 1);
+                } catch (Exception ignored) {
+                    // fallback: try plain int parse
+                    try { amount = Integer.parseInt(amtStr.trim()); } catch (NumberFormatException ignored2) {}
+                }
             } else {
-                amount = Integer.parseInt(amtStr);
+                try { amount = Integer.parseInt(amtStr.trim()); } catch (NumberFormatException ignored) {}
             }
         }
         Material mat = Material.matchMaterial(type);
@@ -269,7 +305,7 @@ public class FishingFrenzyListener implements Listener {
                                 }
                             }
                             if (name == null) continue;
-                            Enchantment enchant = Enchantment.getByName(name.toUpperCase());
+                            Enchantment enchant = resolveEnchantment(name);
                             if (enchant != null && meta != null) {
                                 int useLevel = level > 0 ? level : (1 + random.nextInt(2)); // fallback 1-2
                                 useLevel = Math.max(1, Math.min(useLevel, enchant.getMaxLevel()));
@@ -301,7 +337,7 @@ public class FishingFrenzyListener implements Listener {
                                 }
                             }
                             if (name == null) continue;
-                            Enchantment enchant = Enchantment.getByName(name.toUpperCase());
+                            Enchantment enchant = resolveEnchantment(name);
                             if (enchant != null && meta != null) {
                                 int useLevel = level > 0 ? level : (3 + random.nextInt(3)); // fallback 3-5
                                 useLevel = Math.max(1, Math.min(useLevel, enchant.getMaxLevel()));
@@ -313,25 +349,73 @@ public class FishingFrenzyListener implements Listener {
                 }
             }
         }
-        // Handle custom name (serialize MiniMessage to legacy string)
+        // Handle custom name via Adventure API
         if (map.containsKey("name")) {
             ItemMeta meta = item.getItemMeta();
-            String legacy = LegacyComponentSerializer.legacySection().serialize(miniMessage.deserialize(map.get("name").toString()))
-                    .replace("§r", "");
-            meta.setDisplayName(legacy);
+            Component nameComp = miniMessage.deserialize(map.get("name").toString());
+            meta.displayName(nameComp);
             item.setItemMeta(meta);
         }
-        // Handle custom lore
+        // Handle custom lore via Adventure API
         if (map.containsKey("lore")) {
-            ItemMeta meta = item.getItemMeta();
-            List<String> loreList = (List<String>) map.get("lore");
-            List<String> coloredLore = new java.util.ArrayList<>();
-            for (String line : loreList) {
-                String legacy = LegacyComponentSerializer.legacySection().serialize(miniMessage.deserialize(line)).replace("§r", "");
-                coloredLore.add(legacy);
+            Object loreObj = map.get("lore");
+            if (loreObj instanceof List) {
+                ItemMeta meta = item.getItemMeta();
+                List<Component> lore = new ArrayList<>();
+                for (Object lineObj : (List<?>) loreObj) {
+                    if (lineObj != null) lore.add(miniMessage.deserialize(lineObj.toString()));
+                }
+                meta.lore(lore);
+                item.setItemMeta(meta);
             }
-            meta.setLore(coloredLore);
-            item.setItemMeta(meta);
+        }
+        // Apply potion meta if configured
+        if (map.containsKey("potion")) {
+            Object potionObj = map.get("potion");
+            if (potionObj instanceof Map) {
+                ItemMeta meta = item.getItemMeta();
+                if (meta instanceof PotionMeta) {
+                    PotionMeta pMeta = (PotionMeta) meta;
+                    Map<?, ?> potionMap = (Map<?, ?>) potionObj;
+                    // base potion type (Paper API); supports LONG_/STRONG_ mapping from flags
+                    Object baseObj = potionMap.get("base");
+                    if (baseObj instanceof Map) {
+                        Map<?, ?> base = (Map<?, ?>) baseObj;
+                        Object t = base.get("type");
+                        if (t != null) {
+                            try {
+                                PotionType pType = PotionType.valueOf(t.toString().toUpperCase(Locale.ROOT));
+                                boolean extended = Boolean.TRUE.equals(base.get("extended"));
+                                boolean upgraded = Boolean.TRUE.equals(base.get("upgraded"));
+                                PotionType apply = pType;
+                                if (upgraded) {
+                                    try { apply = PotionType.valueOf("STRONG_" + pType.name()); } catch (IllegalArgumentException ignored) {}
+                                } else if (extended) {
+                                    try { apply = PotionType.valueOf("LONG_" + pType.name()); } catch (IllegalArgumentException ignored) {}
+                                }
+                                pMeta.setBasePotionType(apply);
+                            } catch (IllegalArgumentException ignored) {}
+                        }
+                    }
+                    // color
+                    Object colorObj = potionMap.get("color");
+                    Color parsedColor = parseColor(colorObj);
+                    if (parsedColor != null) {
+                        pMeta.setColor(parsedColor);
+                    }
+                    // custom effects
+                    Object effectsObj = potionMap.get("effects");
+                    if (effectsObj instanceof List) {
+                        for (Object eff : (List<?>) effectsObj) {
+                            PotionEffect effect = parsePotionEffect(eff);
+                            if (effect != null) {
+                                pMeta.addCustomEffect(effect, true);
+                            }
+                        }
+                    }
+                    item.setItemMeta(pMeta);
+                }
+            }
         }
         // Mark Lucky Rod via PDC for reliable detection
         if (map.containsKey("lucky-rod") && Boolean.TRUE.equals(map.get("lucky-rod"))) {
@@ -340,5 +424,99 @@ public class FishingFrenzyListener implements Listener {
             item.setItemMeta(meta);
         }
         return item;
+    }
+
+    // Prefer NamespacedKey lookup; fallback to legacy name method (suppressed deprecation)
+    @SuppressWarnings("deprecation")
+    private Enchantment resolveEnchantment(String name) {
+        if (name == null) return null;
+        String s = name.trim();
+        try {
+            if (s.contains(":")) {
+                String[] parts = s.split(":", 2);
+                NamespacedKey key = new NamespacedKey(parts[0], parts[1]);
+                Enchantment e = Enchantment.getByKey(key);
+                if (e != null) return e;
+            } else {
+                Enchantment e = Enchantment.getByKey(NamespacedKey.minecraft(s.toLowerCase(Locale.ROOT)));
+                if (e != null) return e;
+            }
+        } catch (Exception ignored) {}
+        return Enchantment.getByName(s.toUpperCase(Locale.ROOT));
+    }
+
+    // Parse color from various formats: "#RRGGBB", "R,G,B", or integer
+    private Color parseColor(Object colorObj) {
+        if (colorObj == null) return null;
+        try {
+            if (colorObj instanceof String) {
+                String s = ((String) colorObj).trim();
+                if (s.startsWith("#") && (s.length() == 7 || s.length() == 4)) {
+                    // support #RGB and #RRGGBB
+                    if (s.length() == 4) {
+                        char r = s.charAt(1), g = s.charAt(2), b = s.charAt(3);
+                        s = "#" + r + r + g + g + b + b;
+                    }
+                    int rgb = Integer.parseInt(s.substring(1), 16);
+                    return Color.fromRGB(rgb);
+                }
+                if (s.contains(",")) {
+                    String[] parts = s.split(",");
+                    int r = Integer.parseInt(parts[0].trim());
+                    int g = Integer.parseInt(parts[1].trim());
+                    int b = Integer.parseInt(parts[2].trim());
+                    return Color.fromRGB(r, g, b);
+                }
+                // try named constants (e.g., RED) using reflection to org.bukkit.Color
+                try {
+                    java.lang.reflect.Field f = Color.class.getField(s.toUpperCase(Locale.ROOT));
+                    Object v = f.get(null);
+                    if (v instanceof Color) return (Color) v;
+                } catch (NoSuchFieldException ignored) {}
+            } else if (colorObj instanceof Number) {
+                int rgb = ((Number) colorObj).intValue();
+                return Color.fromRGB(rgb);
+            } else if (colorObj instanceof List) {
+                List<?> list = (List<?>) colorObj;
+                if (list.size() >= 3) {
+                    int r = Integer.parseInt(list.get(0).toString());
+                    int g = Integer.parseInt(list.get(1).toString());
+                    int b = Integer.parseInt(list.get(2).toString());
+                    return Color.fromRGB(r, g, b);
+                }
+            }
+        } catch (Exception ignored) {}
+        return null;
+    }
+
+    // Parse a potion effect from map like {type: SPEED, duration: 30, level: 2, ambient: false, particles: true, icon: true}
+    // duration is in seconds unless duration-ticks is provided or ticks:true is set
+    private PotionEffect parsePotionEffect(Object obj) {
+        if (!(obj instanceof Map)) return null;
+        Map<?, ?> m = (Map<?, ?>) obj;
+        Object typeObj = m.get("type");
+        if (typeObj == null) return null;
+        PotionEffectType peType = PotionEffectType.getByName(typeObj.toString().toUpperCase(Locale.ROOT));
+        if (peType == null) return null;
+        int durationTicks = 200; // default 10s
+        if (m.containsKey("duration-ticks")) {
+            try { durationTicks = Integer.parseInt(m.get("duration-ticks").toString()); } catch (NumberFormatException ignored) {}
+        } else if (m.containsKey("duration")) {
+            boolean isTicks = Boolean.TRUE.equals(m.get("ticks"));
+            try {
+                int val = Integer.parseInt(m.get("duration").toString());
+                durationTicks = isTicks ? val : val * 20;
+            } catch (NumberFormatException ignored) {}
+        }
+        int amplifier = 0;
+        if (m.containsKey("level")) {
+            try { amplifier = Math.max(0, Integer.parseInt(m.get("level").toString()) - 1); } catch (NumberFormatException ignored) {}
+        } else if (m.containsKey("amplifier")) {
+            try { amplifier = Math.max(0, Integer.parseInt(m.get("amplifier").toString())); } catch (NumberFormatException ignored) {}
+        }
+        boolean ambient = Boolean.TRUE.equals(m.get("ambient"));
+        boolean particles = !Boolean.FALSE.equals(m.get("particles"));
+        boolean icon = !Boolean.FALSE.equals(m.get("icon"));
+        return new PotionEffect(peType, durationTicks, amplifier, ambient, particles, icon);
     }
 }
