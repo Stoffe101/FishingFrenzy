@@ -58,17 +58,28 @@ public class FishingFrenzyManager {
         loadConfig();
         removeGlobalBossBar();
         createGlobalBossBar();
+        // Log current effective values for easier troubleshooting
+        plugin.getLogger().info(String.format("FishingFrenzy reloaded: duration=%ds cooldown=%ds per-player-cooldown=%ds loot-multiplier=%.2f mode=%s",
+                frenzyDuration, globalCooldown, perPlayerCooldown, lootMultiplier, mode));
     }
 
     private void loadConfig() {
         this.debug = config.getBoolean("debug", false);
         this.frenzyDuration = config.getInt("frenzy.duration", 90);
-        this.globalCooldown = config.getInt("frenzy.cooldown", 3600);
-        this.perPlayerCooldown = config.getInt("frenzy.per-player-cooldown", 600);
+        // Robust cooldown load with fallback if misplaced at root
+        int cfgCooldown = 3600;
+        if (config.isInt("frenzy.cooldown")) {
+            cfgCooldown = config.getInt("frenzy.cooldown");
+        } else if (config.isInt("cooldown")) {
+            cfgCooldown = config.getInt("cooldown");
+            plugin.getLogger().warning("Config key 'cooldown' should be under 'frenzy.cooldown'. Using the root value for now.");
+        }
+        this.globalCooldown = Math.max(1, cfgCooldown);
+        this.perPlayerCooldown = Math.max(0, config.getInt("frenzy.per-player-cooldown", 600));
         this.lootMultiplier = config.getDouble("frenzy.loot-multiplier", 1.0);
         this.mode = config.getString("frenzy.mode", "global");
         this.warningTime = 300; // TODO: make configurable if needed
-        this.nextFrenzyIn = globalCooldown;
+        this.nextFrenzyIn = globalCooldown; // reset countdown to reflect new cooldown
         this.meterEnabled = config.getBoolean("frenzy.meter.enabled", true);
         this.frenzyMeterRequired = config.getInt("frenzy.meter.required-fish", 100);
         this.luckPerStreak = config.getDouble("frenzy.streaks.luck-per-streak", 0.05);
@@ -166,7 +177,7 @@ public class FishingFrenzyManager {
         } else {
             sender.sendMessage("§7Next Fishing Frenzy in: §b" + formatTime(nextFrenzyIn));
         }
-        sender.sendMessage("§7Mode: §f" + mode + " §7Loot Multiplier: §f" + lootMultiplier);
+        sender.sendMessage("§7Mode: §f" + mode + " §7Loot Multiplier: §f" + lootMultiplier + " §7Cooldown(s): §f" + globalCooldown);
     }
 
     private void sendTitleToAll(String title, String subtitle) {
@@ -192,6 +203,8 @@ public class FishingFrenzyManager {
     public double getLootMultiplier() {
         return lootMultiplier;
     }
+
+    public int getGlobalCooldown() { return globalCooldown; }
 
     private String formatTime(int seconds) {
         int min = seconds / 60;
