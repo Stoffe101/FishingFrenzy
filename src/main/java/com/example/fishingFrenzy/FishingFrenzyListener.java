@@ -15,6 +15,8 @@ import org.bukkit.event.EventHandler;
 import org.bukkit.event.Listener;
 import org.bukkit.event.player.PlayerFishEvent;
 import org.bukkit.event.player.PlayerFishEvent.State;
+import org.bukkit.event.player.PlayerJoinEvent;
+import org.bukkit.event.player.PlayerQuitEvent;
 import org.bukkit.inventory.ItemStack;
 import org.bukkit.inventory.meta.EnchantmentStorageMeta;
 import org.bukkit.inventory.meta.ItemMeta;
@@ -153,6 +155,7 @@ public class FishingFrenzyListener implements Listener {
             }
             if (loot != null) {
                 player.getWorld().dropItemNaturally(player.getLocation(), loot);
+                manager.recordFrenzyCatch(player, loot); // Track the catch for summary
                 player.sendMessage("§bFishing Frenzy! §aYou caught something special!");
                 player.playSound(player.getLocation(), Sound.ENTITY_PLAYER_LEVELUP, 1.0f, 1.2f);
                 player.getWorld().spawnParticle(Particle.HAPPY_VILLAGER, player.getLocation().add(0,1,0), 30, 0.5, 0.5, 0.5, 0.1);
@@ -525,5 +528,19 @@ public class FishingFrenzyListener implements Listener {
         boolean particles = !Boolean.FALSE.equals(m.get("particles"));
         boolean icon = !Boolean.FALSE.equals(m.get("icon"));
         return new PotionEffect(peType, durationTicks, amplifier, ambient, particles, icon);
+    }
+
+    @EventHandler
+    public void onPlayerJoin(PlayerJoinEvent event) {
+        if (manager.isMeterEnabled()) {
+            manager.showBossBarToPlayer(event.getPlayer());
+        }
+    }
+
+    @EventHandler
+    public void onPlayerQuit(PlayerQuitEvent event) {
+        if (manager.isMeterEnabled()) {
+            manager.hideBossBarFromPlayer(event.getPlayer());
+        }
     }
 }

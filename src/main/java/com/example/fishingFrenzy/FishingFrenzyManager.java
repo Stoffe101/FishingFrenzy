@@ -1,6 +1,8 @@
 package com.example.fishingFrenzy;
 
+import java.util.ArrayList;
 import java.util.HashMap;
+import java.util.List;
 import java.util.Map;
 import java.util.UUID;
 
@@ -8,6 +10,7 @@ import org.bukkit.Bukkit;
 import org.bukkit.command.CommandSender;
 import org.bukkit.configuration.file.FileConfiguration;
 import org.bukkit.entity.Player;
+import org.bukkit.inventory.ItemStack;
 import org.bukkit.plugin.Plugin;
 import org.bukkit.scheduler.BukkitRunnable;
 
@@ -45,6 +48,9 @@ public class FishingFrenzyManager {
     private Map<UUID, Integer> playerPityCounters = new HashMap<>();
     private int pityThreshold;
     private boolean debug;
+
+    // Track items caught per player during frenzy
+    private Map<UUID, List<ItemStack>> frenzyCatches = new HashMap<>();
 
     public FishingFrenzyManager(Plugin plugin, FileConfiguration config) {
         this.plugin = plugin;
@@ -109,6 +115,10 @@ public class FishingFrenzyManager {
         return frenzyActive;
     }
 
+    private void sendChatToAll(String message) {
+        Bukkit.broadcastMessage(message);
+    }
+
     public void startScheduler() {
         new BukkitRunnable() {
             @Override
@@ -127,6 +137,7 @@ public class FishingFrenzyManager {
                     updateGlobalBossBar();
                     if (nextFrenzyIn == warningTime) {
                         sendTitleToAll("<yellow>Fishing Frenzy soon!", "<gray>Starts in 5 minutes!");
+                        sendChatToAll("§eFishing Frenzy will start in 5 minutes!");
                     }
                     if (nextFrenzyIn <= 60 && nextFrenzyIn % 10 == 0) {
                         sendActionBarToAll("<yellow>Fishing Frenzy starts in: <aqua>" + formatTime(nextFrenzyIn));
@@ -164,11 +175,38 @@ public class FishingFrenzyManager {
         setGlobalCooldown();
         sendTitleToAll("<aqua>Fishing Frenzy!", "<white>Catch rare loot for " + (frenzyDuration / 60) + " minutes!");
         sendActionBarToAll("<aqua>Fishing Frenzy has started! <white>Time left: <yellow>" + formatTime(frenzyTimeLeft));
+        sendChatToAll("§bFishing Frenzy has started! Catch rare loot for " + (frenzyDuration / 60) + " minutes!");
+    }
+
+    public void recordFrenzyCatch(Player player, ItemStack item) {
+        if (!frenzyActive) return;
+        UUID uuid = player.getUniqueId();
+        frenzyCatches.computeIfAbsent(uuid, k -> new ArrayList<>()).add(item.clone());
     }
 
     private void endFrenzy() {
         frenzyActive = false;
         sendTitleToAll("<red>Fishing Frenzy Ended", "<gray>Back to normal fishing.");
+        sendChatToAll("§cFishing Frenzy has ended. Back to normal fishing!");
+        // Send summary to each player
+        for (Player player : Bukkit.getOnlinePlayers()) {
+            List<ItemStack> caught = frenzyCatches.getOrDefault(player.getUniqueId(), new ArrayList<>());
+            if (!caught.isEmpty()) {
+                Map<String, Integer> summary = new HashMap<>();
+                for (ItemStack item : caught) {
+                    String name = item.getAmount() + "x " + item.getType().name();
+                    summary.put(name, summary.getOrDefault(name, 0) + item.getAmount());
+                }
+                StringBuilder msg = new StringBuilder("§bFishing Frenzy has concluded! Here's what you caught:\n");
+                for (Map.Entry<String, Integer> entry : summary.entrySet()) {
+                    msg.append("§e").append(entry.getKey()).append("\n");
+                }
+                player.sendMessage(msg.toString());
+            } else {
+                player.sendMessage("§bFishing Frenzy has concluded! You didn't catch anything special this time.");
+            }
+        }
+        frenzyCatches.clear();
     }
 
     public void sendStatus(CommandSender sender) {
@@ -198,6 +236,22 @@ public class FishingFrenzyManager {
 
     public Plugin getPlugin() {
         return plugin;
+    }
+
+    public boolean isMeterEnabled() {
+        return meterEnabled;
+    }
+
+    public void showBossBarToPlayer(Player player) {
+        if (globalBossBar != null && adventure != null) {
+            adventure.player(player).showBossBar(globalBossBar);
+        }
+    }
+
+    public void hideBossBarFromPlayer(Player player) {
+        if (globalBossBar != null && adventure != null) {
+            adventure.player(player).hideBossBar(globalBossBar);
+        }
     }
 
     public double getLootMultiplier() {
